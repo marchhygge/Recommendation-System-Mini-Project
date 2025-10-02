@@ -3,11 +3,12 @@ import numpy as np
 import psycopg2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from psycopg2.extras import execute_values
 
 try:
     # Connect to PostgreSQL database
     connection = psycopg2.connect(
-        host="db.pqebyefuvarvwvwovchh.supabase.co",
+        host="db.jfhjtihrzdgyeqfnhvje.supabase.co",
         database="postgres",
         user="postgres",
         password="Hoangthinh@2004"
@@ -78,7 +79,7 @@ try:
             raise ValueError("No restaurant profile data available after grouping.")
         
         user_metrics = df_users.groupby(["user_id"])["tag_name"] \
-                               .apply(lambda x: ' | '.join(x)) \
+                               .apply(lambda x: " ".join(x)) \
                                .reset_index(name="userCharacteristics")
         if user_metrics.empty:
             raise ValueError("No user profile data available after grouping.")
@@ -115,8 +116,8 @@ try:
             top_k_sorted = top_k_idx[np.argsort(-similarity[user_idx][top_k_idx])]
             for restaurant_idx in top_k_sorted:
                 recommendations.append((
-                    str(user_id),
-                    str(restaurant_metrics.iloc[restaurant_idx]["restaurant_id"]),
+                    int(user_id),
+                    int(restaurant_metrics.iloc[restaurant_idx]["restaurant_id"]),
                     float(similarity[user_idx, restaurant_idx])
                 ))
 
@@ -125,26 +126,44 @@ try:
         
         if df_recommendations.empty:
             raise ValueError("No recommendations to insert into the database.")
-        
-        # Insert recommendations into the database
-        insert_query = """
-            INSERT INTO recommendation (user_id, restaurant_id, score)
-            VALUES (%s, %s, %s)
-        """
 
         # Clear existing recommendations for the users
         user_ids = df_recommendations["user_id"].unique()
+        user_ids = [int(u) for u in user_ids]
         cursor.execute("DELETE FROM recommendation WHERE user_id = ANY(%s)", (list(user_ids),))
         connection.commit()
 
         # Insert new recommendations
-        cursor.executemany(insert_query, df_recommendations.values.tolist())
-        connection.commit()
-        
+        insert_query = """
+            INSERT INTO recommendation (user_id, restaurant_id, score)
+            VALUES %s
+        """
+        execute_values(cursor
+                      ,insert_query
+                      ,df_recommendations.values.tolist())
         print(f"Inserted {len(df_recommendations)} recommendations into DB")
+
+        # create of replace recommendation view
+        cursor.execute("""
+            CREATE OR REPLACE VIEW recommendation_view AS
+            SELECT r.id as recommendation_id,
+                u.username as user_name,
+                res.name as restaurant_name,
+                r.score
+            FROM recommendation r
+            JOIN users u ON r.user_id = u.id
+            JOIN restaurants res ON r.restaurant_id = res.id
+        """)
+        print("Prepared view creation.")
+
+        connection.commit()
+        print("Recommendations inserted and view created successfully.")
 
 except Exception as e:
     print(f"Error: {e}")
+    if connection:
+        connection.rollback()
+        print("Transaction rolled back due to error.")
 finally:
     if connection:
         cursor.close()

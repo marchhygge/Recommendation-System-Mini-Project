@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from os import join, dirname
+from os.path import join, dirname,abspath
 import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd
@@ -13,7 +13,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ------------ 1. load enironment variables ------------
 def load_env_variables():
     try:
-        dotenv_path = join(dirname(__file__), '.env')
+        project_root = dirname(dirname(abspath(__file__)))
+        dotenv_path = join(project_root, '.env') 
+
+        if not os.path.exists(dotenv_path):
+            raise FileNotFoundError(f".env file not found at {dotenv_path}")
+
         load_dotenv(dotenv_path)
         print("[1] Environment variables loaded successfully.")
         return {
@@ -146,23 +151,25 @@ def compute_similarity(restaurant_profiles, user_profiles):
         similarity_matrix = cosine_similarity(user_vec, restaurant_vec)
         print("Cosine similarity computation completed.")
 
-        # Create a DataFrame for similarity scores
+        # Create a DataFrame for all user–restaurant combinations
         print("Creating similarity DataFrame...")
         recommendations = []
         for user_idx, user_id in enumerate(user_profiles["user_id"]):
-            top_k_idx = np.argpartition(-similarity_matrix[user_idx], k)[:k]
-            top_k_sorted = top_k_idx[np.argsort(-similarity_matrix[user_idx][top_k_idx])]
-            for restaurant_idx in top_k_sorted:
+            for restaurant_idx, restaurant_id in enumerate(restaurant_profiles["restaurant_id"]):
                 recommendations.append((
                     int(user_id),
-                    int(restaurant_profiles.iloc[restaurant_idx]["restaurant_id"]),
+                    int(restaurant_id),
                     float(similarity_matrix[user_idx, restaurant_idx])
                 ))
-        df_recommendations = pd.DataFrame(recommendations, columns=["user_id","restaurant_id","score"])
+
+        df_recommendations = pd.DataFrame(
+            recommendations,
+            columns=["user_id", "restaurant_id", "score"]
+        )
         print("Similarity DataFrame created.")
         print("[5] Similarity computation completed successfully.")
         return df_recommendations
-    
+
     except Exception as e:
         print(f"Error in compute_similarity: {e}")
         raise
@@ -173,24 +180,24 @@ def write_DB(con, cursor, df_recommendations):
         print("[6] write_DB function called.")
 
         # delete old recommendations
-        print("deleting old recommendations...")
+        print("deleting old recommendation...")
         user_ids = df_recommendations["user_id"].unique()
         user_ids = [int(u) for u in user_ids]
         cursor.execute(
-            "DELETE FROM recommendations WHERE user_id = ANY(%s)", (list(user_ids),)
+            "DELETE FROM recommendation WHERE user_id = ANY(%s)", (list(user_ids),)
         )
-        print(f"Deleted existing recommendations for {len(user_ids)} users.")
+        print(f"Deleted existing recommendation for {len(user_ids)} users.")
         con.commit()
 
         # insert new recommendations
-        print("inserting new recommendations...")
+        print("inserting new recommendation...")
         insert_query = """
-            INSERT INTO recommendations (user_id, restaurant_id, score)
+            INSERT INTO recommendation (user_id, restaurant_id, score)
             VALUES %s
         """
         execute_values(cursor, insert_query, df_recommendations.values.tolist())
-        print(f"Inserted {len(df_recommendations)} recommendations into DB")
-        print("Sample inserted recommendations:")
+        print(f"Inserted {len(df_recommendations)} recommendation into DB")
+        print("Sample inserted recommendation:")
         print(df_recommendations.head(5))
         con.commit()
 
@@ -218,9 +225,12 @@ def create_view(cursor,con):
             """
         )
         con.commit()
-        print("[7] create_view process completed successfully.")
-        cursor.close()
-        print("Database connection closed.")
+        print("[7] create_view process completed successfully.")    
     except Exception as e:
         print(f"Error in create_view: {e}")
+        con.rollback()
         raise
+    finally:
+        cursor.close()
+        con.close()
+        print("Database connection closed.")

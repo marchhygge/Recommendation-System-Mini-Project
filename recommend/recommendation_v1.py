@@ -37,10 +37,10 @@ def load_env_variables():
 def connect_db(env):
     try:
         con = psycopg2.connect(
-            host=env["HOST"],
-            database=env["DATABASE"],
-            user=env["USER"],
-            password=env["PASSWORD"]
+            host=env["DB_HOST"],
+            database=env["DB_NAME"],
+            user=env["DB_USER"],
+            password=env["DB_PASSWORD"]
         )
         cursor = con.cursor()
         return con, cursor

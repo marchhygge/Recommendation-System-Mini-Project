@@ -38,7 +38,7 @@ def task_create_view(env):
 
 @flow(name="Recommendation Flow")
 def recommend_pipeline():
-    print("🚀 Starting Recommendation Flow...")
+    print("Starting Recommendation Flow...")
 
     # Load env
     env = task_load_env()
@@ -58,7 +58,7 @@ def recommend_pipeline():
     # Create view
     task_create_view(env)
 
-    print("✅ Recommendation Flow completed successfully!")
+    print("Recommendation Flow completed successfully!")
 
 if __name__ == "__main__":
     recommend_pipeline()

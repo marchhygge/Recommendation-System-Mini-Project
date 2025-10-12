@@ -20,7 +20,7 @@ def load_env_variables():
     # Đọc từ environment variables (work cho cả local và cloud)
     env_vars = {
         'DB_HOST': os.getenv('DB_HOST'),
-        'DB_NAME': os.getenv('DB_NAME'),
+        'DB_NAME': os.getenv('DB_DATABASE'),
         'DB_USER': os.getenv('DB_USER'),
         'DB_PASSWORD': os.getenv('DB_PASSWORD'),
         'DB_PORT': os.getenv('DB_PORT', '5432'),  # default value

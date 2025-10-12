@@ -41,7 +41,8 @@ def connect_db(env):
             user=env["DB_USER"],
             password=env["DB_PASSWORD"],
             port='6543',
-            sslmode='require'
+            sslmode='require',
+            client_encoding='UTF8'
         )
         cursor = con.cursor()
         return con, cursor

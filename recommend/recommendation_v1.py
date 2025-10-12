@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 from os.path import join, dirname, abspath
+from pathlib import Path
 import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd

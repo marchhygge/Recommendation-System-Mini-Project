@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from os.path import join, dirname,abspath
+from os.path import join, dirname, abspath
 import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd
@@ -8,9 +8,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-
-
-# ------------ 1. load enironment variables ------------
+# ------------ 1. load environment variables ------------
 def load_env_variables():
     try:
         project_root = dirname(dirname(abspath(__file__)))
@@ -20,7 +18,6 @@ def load_env_variables():
             raise FileNotFoundError(f".env file not found at {dotenv_path}")
 
         load_dotenv(dotenv_path)
-        print("[1] Environment variables loaded successfully.")
         return {
             "HOST": os.getenv("HOST"),
             "DATABASE": os.getenv("DATABASE"),
@@ -41,7 +38,6 @@ def connect_db(env):
             password=env["PASSWORD"]
         )
         cursor = con.cursor()
-        print("[2] Connected to PostgreSQL database successfully.")
         return con, cursor
     except Exception as e:
         print(f"Error connecting to database: {e}")
@@ -50,7 +46,6 @@ def connect_db(env):
 # ------------- 3. query restaurants --------------------------
 def fetch_datas(cursor):
     try:
-        print("[3] fetch_datas function called.")
         # Query restaurants
         restaurant_query = """
             select b.restaurant_id,
@@ -70,7 +65,6 @@ def fetch_datas(cursor):
         df_restaurants = pd.DataFrame(
             restaurant_data, columns=[desc[0] for desc in cursor.description]
         )
-        print(f"fetched {len(df_restaurants)} restaurant records.")
         
         # Query users
         users_query = """
@@ -90,9 +84,7 @@ def fetch_datas(cursor):
         df_users = pd.DataFrame(
             user_date, columns=[desc[0] for desc in cursor.description]
         )
-        print(f"fetched {len(df_users)} user records.")
 
-        print("[3] Data fetching completed successfully.")
         return df_restaurants, df_users
     except Exception as e:
         print(f"Error failed to fetch data: {e}")
@@ -101,14 +93,12 @@ def fetch_datas(cursor):
 # ------------- 4. preprocess data --------------------------
 def preprocess_data(df_restaurants, df_users):
     try:
-        print("[4] preprocess_data function called.")
         # Aggregate tags for each restaurant
         restaurant_profiles = (
             df_restaurants.groupby("restaurant_id")["tag_name"]
                           .apply(lambda x: ' | '.join(x))
                           .reset_index(name="restaurantCharacteristics")
         )
-        print(f"Created {len(restaurant_profiles)} restaurant profiles.")
 
         # Aggregate tags for each user
         user_profiles = (
@@ -116,9 +106,7 @@ def preprocess_data(df_restaurants, df_users):
                     .apply(lambda x: ' | '.join(x))
                     .reset_index(name="userCharacteristics")
         )
-        print(f"Created {len(user_profiles)} user profiles.")
 
-        print("[4] Preprocessing completed successfully.")
         return restaurant_profiles, user_profiles
 
     except Exception as e:
@@ -128,31 +116,22 @@ def preprocess_data(df_restaurants, df_users):
 # ------------- 5. compute similarity --------------------------
 def compute_similarity(restaurant_profiles, user_profiles):
     try:
-        print("[5] compute_similarity function called.")
-
         # Combine all characteristics for TF-IDF vectorization
-        print("Combining characteristics for TF-IDF vectorization...")
         vectorizer = TfidfVectorizer()
         all_characteristics = pd.concat([
             user_profiles["userCharacteristics"],
             restaurant_profiles["restaurantCharacteristics"]
         ])
         vectorizer.fit(all_characteristics)
-        print("TF-IDF vectorizer fitted.")
 
         # Transform user and restaurant characteristics
-        print("Transforming characteristics...")
         user_vec = vectorizer.transform(user_profiles["userCharacteristics"])
         restaurant_vec = vectorizer.transform(restaurant_profiles["restaurantCharacteristics"])
-        print("TF-IDF transformation completed.")
 
         # Compute cosine similarity
-        print("Computing cosine similarity...")
         similarity_matrix = cosine_similarity(user_vec, restaurant_vec)
-        print("Cosine similarity computation completed.")
 
         # Create a DataFrame for all user–restaurant combinations
-        print("Creating similarity DataFrame...")
         recommendations = []
         for user_idx, user_id in enumerate(user_profiles["user_id"]):
             for restaurant_idx, restaurant_id in enumerate(restaurant_profiles["restaurant_id"]):
@@ -166,8 +145,6 @@ def compute_similarity(restaurant_profiles, user_profiles):
             recommendations,
             columns=["user_id", "restaurant_id", "score"]
         )
-        print("Similarity DataFrame created.")
-        print("[5] Similarity computation completed successfully.")
         return df_recommendations
 
     except Exception as e:
@@ -177,31 +154,21 @@ def compute_similarity(restaurant_profiles, user_profiles):
 # ------------- 6. write to DataBase --------------------------
 def write_DB(con, cursor, df_recommendations):
     try:
-        print("[6] write_DB function called.")
-
-        # delete old recommendations
-        print("deleting old recommendation...")
+        # Delete old recommendations
         user_ids = df_recommendations["user_id"].unique()
         user_ids = [int(u) for u in user_ids]
         cursor.execute(
             "DELETE FROM recommendation WHERE user_id = ANY(%s)", (list(user_ids),)
         )
-        print(f"Deleted existing recommendation for {len(user_ids)} users.")
         con.commit()
 
-        # insert new recommendations
-        print("inserting new recommendation...")
+        # Insert new recommendations
         insert_query = """
             INSERT INTO recommendation (user_id, restaurant_id, score)
             VALUES %s
         """
         execute_values(cursor, insert_query, df_recommendations.values.tolist())
-        print(f"Inserted {len(df_recommendations)} recommendation into DB")
-        print("Sample inserted recommendation:")
-        print(df_recommendations.head(5))
         con.commit()
-
-        print("[6] write_DB process completed successfully.")
 
     except Exception as e:
         print(f"Error in write_DB: {e}")
@@ -209,9 +176,8 @@ def write_DB(con, cursor, df_recommendations):
         raise
 
 # ------------------ 7. create view  -----------------------
-def create_view(cursor,con):
+def create_view(cursor, con):
     try:
-        print("creating or replacing recommendation view...")
         cursor.execute(
             """
             CREATE OR REPLACE VIEW recommendation_view AS
@@ -225,7 +191,6 @@ def create_view(cursor,con):
             """
         )
         con.commit()
-        print("[7] create_view process completed successfully.")    
     except Exception as e:
         print(f"Error in create_view: {e}")
         con.rollback()
@@ -233,4 +198,3 @@ def create_view(cursor,con):
     finally:
         cursor.close()
         con.close()
-        print("Database connection closed.")

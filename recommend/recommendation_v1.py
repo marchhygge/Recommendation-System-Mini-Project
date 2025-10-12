@@ -187,7 +187,7 @@ def create_view(cursor, con):
             """
             CREATE OR REPLACE VIEW recommendation_view AS
             SELECT r.id as recommendation_id,
-                u.id as user_id
+                u.id as user_id,
                 u.username as user_name,
                 res.name as restaurant_name,
                 r.score

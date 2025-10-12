@@ -1,16 +1,17 @@
-name: recommendation-deployment
+name: recommendation-system
 prefect-version: 3.0.0
+
 deployments:
   - name: first-deploy
-    description: "Recommendation pipeline"
     entrypoint: flow/flow_recommend.py:recommend_pipeline
     work_pool:
-      name: default-agent-pool
-      job_variables:
-        image: prefecthq/prefect:3-latest
-    build: 
-      - prefect.deployments.steps.pip_install:
-          requirements: requirements.txt
-    push: 
-      - prefect.deployments.steps.git_push:
-          repository: "marchhygge/Recommendation-System-Mini-Project"
+      name: default
+    
+    pull:
+      - prefect.deployments.steps.git_clone:
+          repository: https://github.com/marchhygge/Recommendation-System-Mini-Project
+          branch: main
+    
+    build:
+      - prefect.deployments.steps.run_shell_script:
+          script: pip install -r requirements.txt

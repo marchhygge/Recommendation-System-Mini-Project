@@ -10,23 +10,27 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # ------------ 1. load environment variables ------------
 def load_env_variables():
-    try:
-        project_root = dirname(dirname(abspath(__file__)))
-        dotenv_path = join(project_root, '.env') 
-
-        if not os.path.exists(dotenv_path):
-            raise FileNotFoundError(f".env file not found at {dotenv_path}")
-
-        load_dotenv(dotenv_path)
-        return {
-            "HOST": os.getenv("HOST"),
-            "DATABASE": os.getenv("DATABASE"),
-            "USER": os.getenv("USER"),
-            "PASSWORD": os.getenv("PASSWORD")
-        }
-    except Exception as e:
-        print(f"Error loading .env file: {e}")
-        raise
+    # Load .env cho local development (nếu có)
+    dotenv_path = Path(__file__).parent.parent / '.env'
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path=dotenv_path)
+        print("Loaded .env for local development")
+    
+    # Đọc từ environment variables (work cho cả local và cloud)
+    env_vars = {
+        'DB_HOST': os.getenv('DB_HOST'),
+        'DB_NAME': os.getenv('DB_NAME'),
+        'DB_USER': os.getenv('DB_USER'),
+        'DB_PASSWORD': os.getenv('DB_PASSWORD'),
+        'DB_PORT': os.getenv('DB_PORT', '5432'),  # default value
+    }
+    
+    # Validate required vars
+    missing = [k for k, v in env_vars.items() if v is None]
+    if missing:
+        raise ValueError(f"Missing required environment variables: {missing}")
+    
+    return env_vars
     
 # ------------ 2. connect to PostgreSQL database ------------
 def connect_db(env):

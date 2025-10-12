@@ -23,7 +23,7 @@ def load_env_variables():
         'DB_NAME': os.getenv('DB_DATABASE'),
         'DB_USER': os.getenv('DB_USER'),
         'DB_PASSWORD': os.getenv('DB_PASSWORD'),
-        'DB_PORT': os.getenv('DB_PORT', '5432'),  # default value
+        'DB_PORT': os.getenv('DB_PORT', '6543'),  # default value
     }
     
     # Validate required vars
@@ -38,9 +38,11 @@ def connect_db(env):
     try:
         con = psycopg2.connect(
             host=env["DB_HOST"],
+            port=env["DB_PORT"],
             database=env["DB_NAME"],
             user=env["DB_USER"],
-            password=env["DB_PASSWORD"]
+            password=env["DB_PASSWORD"],
+            sslmode='require'
         )
         cursor = con.cursor()
         return con, cursor

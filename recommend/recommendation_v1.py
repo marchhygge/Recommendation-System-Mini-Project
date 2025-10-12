@@ -186,14 +186,17 @@ def create_view(cursor, con):
         cursor.execute(
             """
             CREATE OR REPLACE VIEW recommendation_view AS
-            SELECT r.id as recommendation_id,
-                u.id as user_id,
-                u.username as user_name,
-                res.name as restaurant_name,
-                r.score
+            SELECT
+                r.user_id,
+                r.restaurant_id,
+                r.score,
+                r.updated_at,
+                ROW_NUMBER() OVER (
+                    PARTITION BY r.user_id
+                    ORDER BY r.score DESC
+                ) AS rank
             FROM recommendation r
-            JOIN users u ON r.user_id = u.id
-            JOIN restaurants res ON r.restaurant_id = res.id
+            ORDER BY r.user_id, r.score DESC
             """
         )
         con.commit()

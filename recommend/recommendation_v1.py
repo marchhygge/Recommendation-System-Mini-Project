@@ -164,9 +164,7 @@ def write_DB(con, cursor, df_recommendations):
         # Delete old recommendations
         user_ids = df_recommendations["user_id"].unique()
         user_ids = [int(u) for u in user_ids]
-        cursor.execute(
-            "DELETE FROM recommendation WHERE user_id = ANY(%s)", (list(user_ids),)
-        )
+        cursor.execute("TRUNCATE TABLE recommendation RESTART IDENTITY CASCADE")
         con.commit()
 
         # Insert new recommendations
@@ -185,6 +183,10 @@ def write_DB(con, cursor, df_recommendations):
 # ------------------ 7. create view  -----------------------
 def create_view(cursor, con):
     try:
+        cursor.execute("""
+            ALTER SEQUENCE recommendation_id_seq RESTART WITH 1
+        """)
+
         cursor.execute(
             """
             CREATE OR REPLACE VIEW recommendation_view AS

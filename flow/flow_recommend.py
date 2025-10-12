@@ -219,47 +219,8 @@ def recommend_pipeline():
         logger.error("Full traceback: %s", traceback.format_exc())
         raise
 
-
-# ============ OPTIONAL: NOTIFICATION SETUP ============
-
-# async def send_notification_on_failure(flow, flow_run, state):
-#     """Send notification when flow fails"""
-#     logger = get_run_logger()
-#     try:
-#         # Example: Slack notification (configure SlackWebhook block first)
-#         # slack_webhook = await SlackWebhook.load("recommendation-alerts")
-#         # await slack_webhook.notify(
-#         #     f"Recommendation Pipeline Failed\n"
-#         #     f"Flow: {flow.name}\n"
-#         #     f"Run ID: {flow_run.id}\n"
-#         #     f"Error: {state.message}"
-#         # )
-#         logger.error("Pipeline failed - notification would be sent here")
-#     except Exception as e:
-#         logger.error("Failed to send notification: %s", str(e))
-
-
 # ============ DEPLOYMENT CONFIGURATION ============
 
 if __name__ == "__main__":
-    # For local testing
     result = recommend_pipeline()
     print(f"\nPipeline Result: {result}")
-    
-    # For deployment (uncomment when needed):
-    # from prefect.deployments import Deployment
-    # from prefect.server.schemas.schedules import CronSchedule
-    # 
-    # deployment = Deployment.build_from_flow(
-    #     flow=recommend_pipeline,
-    #     name="daily-recommendations",
-    #     version="2.0",
-    #     work_pool_name="default-agent-pool",
-    #     work_queue_name="default",
-    #     schedule=CronSchedule(cron="0 2 * * *", timezone="Asia/Ho_Chi_Minh"),  # Run at 2 AM daily
-    #     tags=["production", "ml", "recommendations"],
-    #     description="Daily restaurant recommendation generation",
-    #     parameters={},
-    # )
-    # 
-    # deployment.apply()

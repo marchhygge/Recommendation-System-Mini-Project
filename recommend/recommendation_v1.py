@@ -183,16 +183,12 @@ def write_DB(con, cursor, df_recommendations):
 # ------------------ 7. create view  -----------------------
 def create_view(cursor, con):
     try:
-        cursor.execute("""
-            ALTER SEQUENCE recommendation_id_seq RESTART WITH 1
-        """)
-
         cursor.execute(
             """
             CREATE OR REPLACE VIEW recommendation_view AS
-                SELECT r.id as recommendation_id,
-                    u.username as user_name,
-                    res.name as restaurant_name,
+                SELECT r.id AS recommendation_id,
+                    r.restaurant_id as restaurant_id,
+                    r.user_id as user_id,
                     r.score
                 FROM recommendation r
                 JOIN users u ON r.user_id = u.id

@@ -40,7 +40,7 @@ def connect_db(env):
             database=env["DB_NAME"],
             user=env["DB_USER"],
             password=env["DB_PASSWORD"],
-            port='6543',
+            port='35911',
             sslmode='require',
             client_encoding='UTF8'
         )

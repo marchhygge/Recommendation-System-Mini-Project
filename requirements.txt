@@ -8,4 +8,5 @@ scikit-learn>=1.3.0
 # PostgreSQL connector
 psycopg2-binary>=2.9.9
 
-
+# Schedule support (Prefect 3)
+pendulum>=3.0.0

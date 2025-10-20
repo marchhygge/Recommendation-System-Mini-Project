@@ -3,7 +3,7 @@ prefect-version: 3.0.0
 
 deployments:
   - name: first-deploy
-    entrypoint: flow/flow_recommend.py:recommend_pipeline
+    entrypoint: flow/flow_recommend.py:recommend_pipelinecl
     work_pool:
       name: default
     

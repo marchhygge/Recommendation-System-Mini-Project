@@ -5,6 +5,8 @@ from prefect.blocks.notifications import SlackWebhook
 from datetime import timedelta
 import traceback
 from recommend import recommendation_v1 as rec
+from prefect.deployments import Deployment
+from prefect.server.schemas.schedules import CronSchedule
 
 
 # ============ TASK DEFINITIONS ============
@@ -220,6 +222,14 @@ def recommend_pipeline():
         raise
 
 # ============ DEPLOYMENT CONFIGURATION ============
+schedule = CronSchedule(cron="0 * * * *", timezone="Asia/Ho_Chi_Minh")
+
+deployment = Deployment.build_from_flow(
+    flow=recommend_pipeline,
+    name="restaurant-recommendation-hourly",
+    description="Hourly scheduled deployment for restaurant recommendations",
+    schedule=schedule,
+)
 
 if __name__ == "__main__":
     result = recommend_pipeline()
